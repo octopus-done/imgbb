@@ -3,8 +3,10 @@ from pymongo import MongoClient
 import requests
 from dotenv import load_dotenv
 import os
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import threading
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
 # Retrieve the environment variables
@@ -51,5 +53,24 @@ def handle_photo(message):
     else:
         bot.reply_to(message, "Failed to upload the photo.")
 
-# Running the bot
-bot.polling()
+# Function to run a simple HTTP server
+class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'Bot is running!')
+
+# Start the HTTP server in a separate thread
+def start_http_server():
+    port = int(os.environ.get('PORT', 5000))
+    server_address = ('', port)
+    httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
+    httpd.serve_forever()
+
+# Run the HTTP server and bot in parallel
+if __name__ == "__main__":
+    http_thread = threading.Thread(target=start_http_server)
+    http_thread.start()
+
+    # Running the Telegram bot
+    bot.polling()
